@@ -5,6 +5,7 @@ import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Billing from './pages/Billing.jsx';
+import PaymentHistory from './pages/PaymentHistory.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 export default function App() {
@@ -34,6 +35,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Billing />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment-history"
+          element={
+            <ProtectedRoute>
+              <PaymentHistory />
             </ProtectedRoute>
           }
         />

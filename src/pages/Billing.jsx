@@ -347,6 +347,12 @@ export default function Billing() {
           >
             Billing
           </Link>
+          <Link
+            to="/payment-history"
+            className="px-4 py-2 rounded-lg font-medium text-gray-300 hover:bg-white/10 transition-all"
+          >
+            Payment History
+          </Link>
         </div>
       </nav>
 

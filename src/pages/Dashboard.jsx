@@ -88,6 +88,12 @@ function Nav({ view, setView, userProfile }) {
           >
             💳 Billing
           </Link>
+          <Link
+            to="/payment-history"
+            className="px-4 py-2 rounded-lg font-medium text-gray-300 hover:bg-white/10 transition-all"
+          >
+            💰 History
+          </Link>
         </div>
         <div className="relative">
           <button
