@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export default function PaymentHistory() {
   const { user, userProfile } = useAuth();
@@ -163,6 +165,172 @@ export default function PaymentHistory() {
 
   const stats = calculateStats();
   const filteredPayments = getFilteredAndSortedPayments();
+
+  const downloadCSV = () => {
+    const csvRows = [];
+    
+    // Headers
+    csvRows.push([
+      'Date',
+      'Bill Number',
+      'Service Number',
+      'Amount (₹)',
+      'Status',
+      'Payment Method',
+      'Transaction ID',
+      'Bill Month'
+    ].join(','));
+
+    // Data rows
+    filteredPayments.forEach(payment => {
+      csvRows.push([
+        formatDate(payment.payment_date),
+        payment.bill_number,
+        payment.service_number,
+        parseFloat(payment.amount).toFixed(2),
+        payment.status,
+        payment.payment_method,
+        payment.transaction_id || 'N/A',
+        payment.bill_month || 'N/A'
+      ].join(','));
+    });
+
+    // Create blob and download
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `payment-history-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add header with logo/title
+    doc.setFillColor(139, 92, 246); // Purple color
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('⚡ Energy Oracle', 15, 20);
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Payment History Report', 15, 30);
+    
+    // Add user information
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 15, 50);
+    
+    if (userProfile) {
+      doc.text(`Service Number: ${userProfile.service_number}`, 15, 56);
+      doc.text(`Electricity Board: ${userProfile.electricity_board}`, 15, 62);
+      doc.text(`Location: ${userProfile.state}, ${userProfile.region}`, 15, 68);
+    }
+    
+    // Add statistics box
+    doc.setDrawColor(139, 92, 246);
+    doc.setLineWidth(0.5);
+    doc.rect(15, 75, 180, 30);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Summary Statistics', 20, 82);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Payments: ${stats.totalPayments}`, 20, 88);
+    doc.text(`Successful: ${stats.successfulPayments}`, 20, 94);
+    doc.text(`Total Amount Paid: ₹${stats.totalAmount.toFixed(2)}`, 20, 100);
+    doc.text(`Average Bill: ₹${stats.averageAmount.toFixed(2)}`, 100, 88);
+    
+    // Add filter information
+    if (filter !== 'all' || sortBy !== 'date-desc') {
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Filter: ${filter} | Sort: ${sortBy}`, 100, 94);
+    }
+    
+    // Prepare table data
+    const tableData = filteredPayments.map(payment => [
+      formatDate(payment.payment_date),
+      payment.bill_number,
+      payment.service_number,
+      `₹${parseFloat(payment.amount).toFixed(2)}`,
+      payment.status.toUpperCase(),
+      payment.payment_method.toUpperCase(),
+      payment.transaction_id || 'N/A'
+    ]);
+    
+    // Add table
+    doc.autoTable({
+      startY: 110,
+      head: [['Date', 'Bill No.', 'Service No.', 'Amount', 'Status', 'Method', 'Transaction ID']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [139, 92, 246],
+        textColor: 255,
+        fontSize: 9,
+        fontStyle: 'bold'
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: 50
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 250]
+      },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 25 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 20, halign: 'right' },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 22 },
+        6: { cellWidth: 35, fontSize: 7 }
+      },
+      margin: { top: 110, left: 15, right: 15 },
+      didDrawPage: function(data) {
+        // Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+          `Page ${data.pageNumber} of ${pageCount}`,
+          doc.internal.pageSize.width / 2,
+          doc.internal.pageSize.height - 10,
+          { align: 'center' }
+        );
+        
+        // Add watermark
+        doc.setTextColor(200, 200, 200);
+        doc.setFontSize(40);
+        doc.text('ENERGY ORACLE', 105, 150, {
+          align: 'center',
+          angle: 45,
+          renderingMode: 'stroke'
+        });
+      }
+    });
+    
+    // Add footer note on last page
+    const finalY = doc.lastAutoTable.finalY || 110;
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text('This is a system-generated report. No signature is required.', 15, finalY + 10);
+    doc.text('For any queries, please contact your electricity board.', 15, finalY + 15);
+    
+    // Save the PDF
+    doc.save(`payment-history-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -397,18 +565,46 @@ export default function PaymentHistory() {
           </div>
         )}
 
-        {/* Download Report Button (future feature) */}
+        {/* Download Report Buttons */}
         {!loading && !error && payments.length > 0 && (
-          <div className="card text-center mt-6 animate-fade-in">
-            <p className="text-gray-400 text-sm mb-3">
-              Need a detailed report of your payments?
-            </p>
-            <button
-              onClick={() => alert('Download feature coming soon!')}
-              className="px-6 py-3 rounded-xl bg-white/5 border border-white/20 hover:bg-white/10 hover:border-primary-500/50 transition-all font-medium text-white"
-            >
-              📥 Download Payment Report
-            </button>
+          <div className="card mt-6 animate-fade-in">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-semibold mb-2">📥 Download Reports</h3>
+              <p className="text-gray-400 text-sm">
+                Export your payment history in your preferred format
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                onClick={downloadCSV}
+                className="px-6 py-4 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/50 hover:border-green-500 transition-all font-medium text-white group"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-2xl group-hover:scale-110 transition-transform">📊</span>
+                  <div className="text-left">
+                    <div className="font-semibold">Download as CSV</div>
+                    <div className="text-xs text-gray-400">Excel compatible spreadsheet</div>
+                  </div>
+                </div>
+              </button>
+              <button
+                onClick={downloadPDF}
+                className="px-6 py-4 rounded-xl bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/50 hover:border-red-500 transition-all font-medium text-white group"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-2xl group-hover:scale-110 transition-transform">�</span>
+                  <div className="text-left">
+                    <div className="font-semibold">Download as PDF</div>
+                    <div className="text-xs text-gray-400">Beautiful formatted report</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="text-xs text-gray-500 text-center">
+                💡 Reports include all currently filtered payments • Showing {filteredPayments.length} of {payments.length} payments
+              </p>
+            </div>
           </div>
         )}
       </main>
