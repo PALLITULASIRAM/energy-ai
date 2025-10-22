@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import CircularProgress from '../components/CircularProgress.jsx';
 import TrendChart from '../components/TrendChart.jsx';
 import { useEnergyData } from '../hooks/useEnergyData.js';
@@ -7,6 +8,7 @@ import { useEnergyData } from '../hooks/useEnergyData.js';
 export default function Dashboard() {
   const [view, setView] = useState('stats'); // 'stats' or 'ai'
   const { data, loading, error, refetch } = useEnergyData();
+  const { userProfile } = useAuth();
 
   if (loading) {
     return (
@@ -30,11 +32,16 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <Nav view={view} setView={setView} />
+      <Nav view={view} setView={setView} userProfile={userProfile} />
       <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
         <header className="text-center mb-8 animate-fade-in">
           <h1 className="text-4xl font-bold gradient-title mb-2">🤖 AI Energy Oracle</h1>
           <p className="text-gray-300">Intelligent Monthly Bill Prediction System</p>
+          {userProfile && (
+            <div className="mt-2 text-sm text-gray-400">
+              <span className="text-primary-400">{userProfile.electricity_board}</span> • {userProfile.state}
+            </div>
+          )}
         </header>
 
         {view === 'stats' && <StatsView data={data} />}
@@ -44,27 +51,60 @@ export default function Dashboard() {
   );
 }
 
-function Nav({ view, setView }) {
+function Nav({ view, setView, userProfile }) {
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const [showMenu, setShowMenu] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
   return (
     <nav className="flex items-center justify-between px-6 py-4 bg-black/20 backdrop-blur-sm border-b border-white/10">
       <Link to="/dashboard" className="font-bold text-xl text-white">⚡ Energy Oracle</Link>
-      <div className="flex gap-2">
-        <button
-          onClick={() => setView('stats')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            view === 'stats' ? 'bg-white/20 text-white' : 'text-gray-300 hover:bg-white/10'
-          }`}
-        >
-          Basic Stats
-        </button>
-        <button
-          onClick={() => setView('ai')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            view === 'ai' ? 'bg-white/20 text-white' : 'text-gray-300 hover:bg-white/10'
-          }`}
-        >
-          AI Inference
-        </button>
+      <div className="flex items-center gap-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setView('stats')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              view === 'stats' ? 'bg-white/20 text-white' : 'text-gray-300 hover:bg-white/10'
+            }`}
+          >
+            Basic Stats
+          </button>
+          <button
+            onClick={() => setView('ai')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              view === 'ai' ? 'bg-white/20 text-white' : 'text-gray-300 hover:bg-white/10'
+            }`}
+          >
+            AI Inference
+          </button>
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="px-4 py-2 rounded-lg font-medium text-gray-300 hover:bg-white/10 transition-all"
+          >
+            {userProfile?.state?.substring(0, 2).toUpperCase() || '👤'}
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-gray-900 rounded-lg shadow-lg border border-white/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/10">
+                <p className="text-xs text-gray-400">Service Number</p>
+                <p className="text-sm text-white font-medium">{userProfile?.service_number || 'N/A'}</p>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-white/5 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );
