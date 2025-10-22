@@ -82,6 +82,12 @@ function Nav({ view, setView, userProfile }) {
           >
             AI Inference
           </button>
+          <Link
+            to="/billing"
+            className="px-4 py-2 rounded-lg font-medium text-gray-300 hover:bg-white/10 transition-all"
+          >
+            💳 Billing
+          </Link>
         </div>
         <div className="relative">
           <button

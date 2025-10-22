@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Onboarding from './pages/Onboarding.jsx';
+import Billing from './pages/Billing.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 export default function App() {
@@ -25,6 +26,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/billing"
+          element={
+            <ProtectedRoute>
+              <Billing />
             </ProtectedRoute>
           }
         />
