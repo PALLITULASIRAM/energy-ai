@@ -2,8 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { 
+  CreditCard, 
+  Smartphone, 
+  Building2, 
+  Wallet, 
+  DollarSign, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  RotateCcw,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Filter,
+  ArrowUpDown,
+  RefreshCw,
+  Receipt,
+  Zap
+} from 'lucide-react';
 
 export default function PaymentHistory() {
   const { user, userProfile } = useAuth();
@@ -101,39 +120,40 @@ export default function PaymentHistory() {
         bg: 'bg-green-500/20',
         border: 'border-green-500/50',
         text: 'text-green-400',
-        icon: '✓',
+        Icon: CheckCircle2,
         label: 'Success'
       },
       failed: {
         bg: 'bg-red-500/20',
         border: 'border-red-500/50',
         text: 'text-red-400',
-        icon: '✕',
+        Icon: XCircle,
         label: 'Failed'
       },
       pending: {
         bg: 'bg-yellow-500/20',
         border: 'border-yellow-500/50',
         text: 'text-yellow-400',
-        icon: '⏳',
+        Icon: Clock,
         label: 'Pending'
       },
       refunded: {
         bg: 'bg-blue-500/20',
         border: 'border-blue-500/50',
         text: 'text-blue-400',
-        icon: '↩',
+        Icon: RotateCcw,
         label: 'Refunded'
       }
     };
 
     const badge = badges[status] || badges.pending;
+    const Icon = badge.Icon;
 
     return (
       <span
         className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.border} ${badge.text} border`}
       >
-        <span>{badge.icon}</span>
+        <Icon size={14} />
         {badge.label}
       </span>
     );
@@ -141,11 +161,11 @@ export default function PaymentHistory() {
 
   const getPaymentMethodIcon = (method) => {
     const icons = {
-      online: '💳',
-      card: '💳',
-      upi: '📱',
-      netbanking: '🏦',
-      wallet: '👛'
+      online: CreditCard,
+      card: CreditCard,
+      upi: Smartphone,
+      netbanking: Building2,
+      wallet: Wallet
     };
     return icons[method] || '💰';
   };
@@ -219,7 +239,7 @@ export default function PaymentHistory() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    doc.text('⚡ Energy Oracle', 15, 20);
+    doc.text('Energy Oracle', 15, 20);
     
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
@@ -248,8 +268,8 @@ export default function PaymentHistory() {
     doc.setFont('helvetica', 'normal');
     doc.text(`Total Payments: ${stats.totalPayments}`, 20, 88);
     doc.text(`Successful: ${stats.successfulPayments}`, 20, 94);
-    doc.text(`Total Amount Paid: ₹${stats.totalAmount.toFixed(2)}`, 20, 100);
-    doc.text(`Average Bill: ₹${stats.averageAmount.toFixed(2)}`, 100, 88);
+    doc.text(`Total Amount Paid: Rs. ${stats.totalAmount.toFixed(2)}`, 20, 100);
+    doc.text(`Average Bill: Rs. ${stats.averageAmount.toFixed(2)}`, 100, 88);
     
     // Add filter information
     if (filter !== 'all' || sortBy !== 'date-desc') {
@@ -263,14 +283,14 @@ export default function PaymentHistory() {
       formatDate(payment.payment_date),
       payment.bill_number,
       payment.service_number,
-      `₹${parseFloat(payment.amount).toFixed(2)}`,
+      `Rs. ${parseFloat(payment.amount).toFixed(2)}`,
       payment.status.toUpperCase(),
       payment.payment_method.toUpperCase(),
       payment.transaction_id || 'N/A'
     ]);
     
     // Add table
-    doc.autoTable({
+    autoTable(doc, {
       startY: 110,
       head: [['Date', 'Bill No.', 'Service No.', 'Amount', 'Status', 'Method', 'Transaction ID']],
       body: tableData,
@@ -299,6 +319,17 @@ export default function PaymentHistory() {
       },
       margin: { top: 110, left: 15, right: 15 },
       didDrawPage: function(data) {
+        // Add watermark in background - very light grey with low opacity
+        doc.saveGraphicsState();
+        doc.setGState(new doc.GState({ opacity: 0.1 }));
+        doc.setTextColor(180, 180, 180);
+        doc.setFontSize(50);
+        doc.text('ENERGY ORACLE', 105, 150, {
+          align: 'center',
+          angle: 45
+        });
+        doc.restoreGraphicsState();
+        
         // Footer
         const pageCount = doc.internal.getNumberOfPages();
         doc.setFontSize(8);
@@ -309,15 +340,9 @@ export default function PaymentHistory() {
           doc.internal.pageSize.height - 10,
           { align: 'center' }
         );
-        
-        // Add watermark
-        doc.setTextColor(200, 200, 200);
-        doc.setFontSize(40);
-        doc.text('ENERGY ORACLE', 105, 150, {
-          align: 'center',
-          angle: 45,
-          renderingMode: 'stroke'
-        });
+      },
+      willDrawCell: function(data) {
+        // This ensures table content draws over the watermark
       }
     });
     
@@ -336,7 +361,10 @@ export default function PaymentHistory() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Navigation */}
       <nav className="flex items-center justify-between px-6 py-4 bg-black/20 backdrop-blur-sm border-b border-white/10">
-        <Link to="/dashboard" className="font-bold text-xl text-white">⚡ Energy Oracle</Link>
+        <Link to="/dashboard" className="font-bold text-xl text-white flex items-center gap-2">
+          <Zap size={24} className="text-primary-400" />
+          Energy Oracle
+        </Link>
         <div className="flex items-center gap-4">
           <Link
             to="/dashboard"
@@ -362,7 +390,10 @@ export default function PaymentHistory() {
       {/* Main Content */}
       <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
         <header className="text-center mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold gradient-title mb-2">💰 Payment History</h1>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-500/20 border border-primary-500/30 mb-4">
+            <Receipt size={32} className="text-primary-400" />
+          </div>
+          <h1 className="text-4xl font-bold gradient-title mb-2">Payment History</h1>
           <p className="text-gray-300">View all your past electricity bill payments</p>
         </header>
 
@@ -422,9 +453,10 @@ export default function PaymentHistory() {
               <div className="flex items-end">
                 <button
                   onClick={loadPaymentHistory}
-                  className="px-4 py-2 rounded-lg bg-primary-500/20 border border-primary-500/50 text-primary-400 hover:bg-primary-500/30 transition-all"
+                  className="px-4 py-2 rounded-lg bg-primary-500/20 border border-primary-500/50 text-primary-400 hover:bg-primary-500/30 transition-all flex items-center gap-2"
                 >
-                  🔄 Refresh
+                  <RefreshCw size={16} />
+                  Refresh
                 </button>
               </div>
             </div>
@@ -459,8 +491,8 @@ export default function PaymentHistory() {
         {/* Empty State */}
         {!loading && !error && payments.length === 0 && (
           <div className="card text-center py-12 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-500/20 mb-4">
-              <span className="text-4xl">📋</span>
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-500/20 border border-primary-500/30 mb-4">
+              <Receipt size={40} className="text-primary-400" />
             </div>
             <h2 className="text-2xl font-semibold mb-2">No Payment History</h2>
             <p className="text-gray-400 mb-6">
@@ -484,7 +516,9 @@ export default function PaymentHistory() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-2xl">{getPaymentMethodIcon(payment.payment_method)}</span>
+                      <div className="p-2 rounded-lg bg-primary-500/20 border border-primary-500/30">
+                        {React.createElement(getPaymentMethodIcon(payment.payment_method), { size: 20, className: 'text-primary-400' })}
+                      </div>
                       <div>
                         <h3 className="text-lg font-semibold text-white">
                           Bill #{payment.bill_number}
@@ -548,7 +582,9 @@ export default function PaymentHistory() {
         {/* No Results After Filter */}
         {!loading && !error && payments.length > 0 && filteredPayments.length === 0 && (
           <div className="card text-center py-12 animate-fade-in">
-            <span className="text-4xl mb-2 block">🔍</span>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-500/20 border border-primary-500/30 mb-4">
+              <Filter size={32} className="text-primary-400" />
+            </div>
             <h2 className="text-xl font-semibold mb-2">No Payments Found</h2>
             <p className="text-gray-400 mb-4">
               No payments match your current filter criteria.
@@ -569,7 +605,7 @@ export default function PaymentHistory() {
         {!loading && !error && payments.length > 0 && (
           <div className="card mt-6 animate-fade-in">
             <div className="text-center mb-4">
-              <h3 className="text-lg font-semibold mb-2">📥 Download Reports</h3>
+              <h3 className="text-lg font-semibold mb-2"><Download size={20} className="inline text-primary-400" /> Download Reports</h3>
               <p className="text-gray-400 text-sm">
                 Export your payment history in your preferred format
               </p>
@@ -580,7 +616,7 @@ export default function PaymentHistory() {
                 className="px-6 py-4 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/50 hover:border-green-500 transition-all font-medium text-white group"
               >
                 <div className="flex items-center justify-center gap-3">
-                  <span className="text-2xl group-hover:scale-110 transition-transform">📊</span>
+                  <FileSpreadsheet size={24} className="text-green-400 group-hover:scale-110 transition-transform" />
                   <div className="text-left">
                     <div className="font-semibold">Download as CSV</div>
                     <div className="text-xs text-gray-400">Excel compatible spreadsheet</div>
@@ -592,7 +628,7 @@ export default function PaymentHistory() {
                 className="px-6 py-4 rounded-xl bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/50 hover:border-red-500 transition-all font-medium text-white group"
               >
                 <div className="flex items-center justify-center gap-3">
-                  <span className="text-2xl group-hover:scale-110 transition-transform">�</span>
+                  <FileText size={24} className="text-red-400 group-hover:scale-110 transition-transform" />
                   <div className="text-left">
                     <div className="font-semibold">Download as PDF</div>
                     <div className="text-xs text-gray-400">Beautiful formatted report</div>
@@ -601,8 +637,9 @@ export default function PaymentHistory() {
               </button>
             </div>
             <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-xs text-gray-500 text-center">
-                💡 Reports include all currently filtered payments • Showing {filteredPayments.length} of {payments.length} payments
+              <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-2">
+                <Filter size={14} />
+                Reports include all currently filtered payments • Showing {filteredPayments.length} of {payments.length} payments
               </p>
             </div>
           </div>
