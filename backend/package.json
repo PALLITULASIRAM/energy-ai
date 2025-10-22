@@ -1,0 +1,20 @@
+{
+  "name": "energy-oracle-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Energy Oracle payment processing",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["razorpay", "payments", "electricity", "billing"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "razorpay": "^2.9.2"
+  }
+}
